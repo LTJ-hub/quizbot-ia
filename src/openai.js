@@ -1,13 +1,15 @@
 // src/openai.js
 
+import { getLangCodeForPrompt } from "./lang"; // <-- NOUVEL IMPORT
 const OPENAI_KEY = import.meta.env.VITE_OPENAI_API_KEY || "";
 
 async function callOpenAIApi(prompt) {
+  // L'import dynamique est important pour les environnements de navigateur
   const OpenAI = (await import("openai")).default;
   
   const client = new OpenAI({ 
     apiKey: OPENAI_KEY,
-    dangerouslyAllowBrowser: true 
+    dangerouslyAllowBrowser: true // Permet les appels depuis le navigateur (Attention sécurité)
   });
   
   const res = await client.chat.completions.create({
@@ -19,7 +21,7 @@ async function callOpenAIApi(prompt) {
         },
         { role: "user", content: prompt }
     ],
-    temperature: 0.0, 
+    temperature: 0.0, // Température basse pour la précision
     response_format: { type: "json_object" }
   });
   
@@ -38,17 +40,21 @@ function mockQuestions(theme) {
   ];
 }
 
-export async function generateQuestions(theme, mode = "carre") {
+export async function generateQuestions(theme, mode = "carre", language = "Français") {
   if (!OPENAI_KEY) {
     console.warn("VITE_OPENAI_API_KEY not set — returning mock questions.");
     return mockQuestions(theme);
   }
+
+  // Obtenir le nom de la langue à utiliser dans le prompt (ex: "French" ou "English")
+  const promptLanguage = getLangCodeForPrompt(language);
 
   // Seed aléatoire pour la variété
   const uniqueSeed = new Date().getTime(); 
 
   const prompt = `
 Generate exactly 5 quiz questions about "${theme}" in a single JSON array format.
+All questions, answers, and content MUST be written entirely in the language: ${promptLanguage}.
 
 Règles pour la variété (Seed: ${uniqueSeed}):
 1. TU DOIS générer des questions différentes pour chaque appel unique.
@@ -67,6 +73,7 @@ Return ONLY the JSON array.
   try {
     const text = await callOpenAIApi(prompt);
     
+    // Extraction sécurisée du JSON
     const jsonTextMatch = text.match(/(\{.*\}|\[.*\])/s);
     const jsonText = jsonTextMatch ? jsonTextMatch[1] : text;
     
@@ -79,6 +86,7 @@ Return ONLY the JSON array.
 
     let qs = Array.isArray(parsed) ? parsed : [];
 
+    // Tente de trouver un tableau dans l'objet racine si la racine est un objet
     if (qs.length === 0 && typeof parsed === 'object' && parsed !== null) {
         qs = parsed.questions || parsed.quiz || [];
     }
@@ -92,10 +100,10 @@ Return ONLY the JSON array.
       question: String(q.question || q.q || `Question ${i+1} sur ${theme}`).trim(),
       answers: (q.answers && Array.isArray(q.answers) ? q.answers.slice(0,4) : ["Réponse 1","Réponse 2","Réponse 3","Réponse 4"]),
       correct: Number.isInteger(q.correct) ? q.correct : 0,
-      difficulty: Number.isInteger(q.difficulty) ? q.difficulty : (i+1) // Attribution par défaut si l'IA oublie
+      difficulty: Number.isInteger(q.difficulty) ? q.difficulty : (i+1) 
     }));
 
-    // --- LOGIQUE DE TRI CRUCIALE AJOUTÉE ICI ---
+    // Tri par difficulté
     finalQuestions.sort((a, b) => a.difficulty - b.difficulty);
 
     return finalQuestions;

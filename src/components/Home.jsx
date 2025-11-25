@@ -1,22 +1,31 @@
 import { useState } from "react";
+import { getTexts } from "../lang"; 
 
 export default function Home({ onStart }) {
   const [theme, setTheme] = useState("");
+  const [language, setLanguage] = useState("Français"); 
+  // Rétablit le flow : Le mode est choisi plus tard
   const [loading, setLoading] = useState(false); 
   const [error, setError] = useState(null);
 
+  const T = getTexts(language); 
+
   function handleStart() {
     if (!theme.trim()) {
-      setError("Veuillez entrer un thème pour commencer le quiz.");
+      setError(T.error_no_theme);
       return;
     }
     setError(null);
     setLoading(true); 
-    onStart({ theme: theme.trim() });
+    
+    // TRANSMETTRE LE THÈME ET LA LANGUE SEULEMENT
+    onStart({ 
+        theme: theme.trim(),
+        language: language
+    });
   }
 
   return (
-    // Conteneur centré et sans fond (le body gère le fond violet)
     <div style={{ 
             display: 'flex', 
             flexDirection: 'column', 
@@ -27,7 +36,6 @@ export default function Home({ onStart }) {
             padding: '20px'
          }}>
 
-      {/* TITRE "QuizBot" */}
       <h1 style={{ 
             fontSize: '70px', 
             fontWeight: 'bold', 
@@ -36,27 +44,57 @@ export default function Home({ onStart }) {
             marginBottom: '10px',
             textAlign: 'center'
          }}>
-        QuizBot
+        {T.title}
       </h1>
 
-      {/* "Choisir un thème" */}
+      {/* CHOIX DE LA LANGUE */}
       <label style={{ 
             fontSize: '25px', 
             color: '#FFD700', 
             fontFamily: 'Agency FB, Impact, sans-serif', 
-            marginBottom: '30px',
+            marginBottom: '10px',
+            marginTop: '20px',
             textAlign: 'center'
          }}>
-        Choisir un thème
+        {T.select_language}
       </label>
-      
-      {/* Barre blanche et vierge pour rentrer le thème */}
+      <select
+        value={language}
+        onChange={(e) => setLanguage(e.target.value)}
+        style={{
+            width: '200px',
+            height: '40px',
+            backgroundColor: 'white', 
+            border: 'none', 
+            textAlign: 'center',
+            fontSize: '18px',
+            color: 'black',
+            marginBottom: '40px' 
+        }}
+        aria-label={T.select_language}
+      >
+        <option value="Français">Français</option>
+        <option value="English">English</option>
+      </select>
+
+      {/* CHAMP DE SÉLECTION DU MODE SUPPRIMÉ ICI */}
+
+      {/* CHOIX DU THÈME */}
+      <label style={{ 
+            fontSize: '25px', 
+            color: '#FFD700', 
+            fontFamily: 'Agency FB, Impact, sans-serif', 
+            marginBottom: '10px',
+            textAlign: 'center'
+         }}>
+        {T.select_theme}
+      </label>
       <input
         type="text"
         value={theme}
         onChange={(e) => setTheme(e.target.value)}
         style={{
-            width: '200px', // Taille ajustée pour coller à l'image
+            width: '200px', 
             height: '40px',
             backgroundColor: 'white', 
             border: 'none', 
@@ -64,8 +102,8 @@ export default function Home({ onStart }) {
             fontSize: '18px',
             color: 'black'
         }}
-        placeholder="" /* Vierge */
-        aria-label="Thème du quiz"
+        placeholder={T.placeholder_theme}
+        aria-label={T.select_theme}
       />
       
       {error && (
@@ -74,7 +112,7 @@ export default function Home({ onStart }) {
         </div>
       )}
 
-      {/* Bouton "Générer et Commencer le Quiz" - Affiché uniquement si thème saisi */}
+      {/* Bouton "Générer et Commencer le Quiz" */}
       {theme.trim() && (
         <button
           onClick={handleStart}
@@ -89,7 +127,7 @@ export default function Home({ onStart }) {
           }}
           disabled={loading}
         >
-          {loading ? "Préparation du Quiz..." : "Générer et Commencer le Quiz"}
+          {loading ? T.loading : T.button_start}
         </button>
       )}
 
